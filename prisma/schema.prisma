@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Event {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  dates          String // JSON: lista dat "YYYY-MM-DD" (SQLite nie ma tablic)
+  startMinutes   Int
+  endMinutes     Int
+  slotMinutes    Int
+  timeZone       String
+  adminTokenHash String
+  createdAt      DateTime      @default(now())
+  participants   Participant[]
+}
+
+model Participant {
+  id           String         @id @default(cuid())
+  eventId      String
+  name         String
+  tokenHash    String
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  availability Availability[]
+
+  @@unique([eventId, name])
+}
+
+model Availability {
+  id            String      @id @default(cuid())
+  participantId String
+  slot          String // ISO UTC, np. 2026-10-20T06:00:00.000Z
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, slot])
+}
