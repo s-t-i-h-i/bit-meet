@@ -1,24 +1,32 @@
 "use client"
-// strona z siatką i zaznaczaniem dostępności
-import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef } from "react"
 import { format } from "date-fns"
 import { tz } from "@date-fns/tz"
-import { basic } from "@/lib/sampleData"
-import {generateSlots} from "@/app/components/helpers"
+import type { SlotInfo } from "./helpers"
 
-export default function AvailabilityGrid() {
-    // stan zaznaczonych slotow
-    const [selectedSlots,setSelectedSlots] = useState<Set<string>>(new Set())
+type Props = {
+  slots: string[];
+  timeZone: string;
+  mode: "edit" | "heatmap";
+  // tryb edit
+  selectedSlots?: Set<string>;
+  setSelectedSlots?: React.Dispatch<React.SetStateAction<Set<string>>>;
+  // tryb heatmap
+  result?: Record<string, SlotInfo>;
+  participantCount?: number;
+};
+
+export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots = new Set(), setSelectedSlots, result, participantCount = 0 }: Props) {
+    const editable = mode === "edit" && !!setSelectedSlots
 
     // przeciaganie: nie wplywa na wyglad, wiec refy zamiast stanu (bez opoznienia miedzy zdarzeniami)
     const isDragging = useRef(false)
     const dragMode = useRef<"add" | "remove">("add")
 
-    const s = basic;
 
     // zastosuj dragMode do slotu; nowy Set, zeby React odswiezyl widok
     const applySlot = (slot: string) => {
-        setSelectedSlots((prev) => {
+        setSelectedSlots?.((prev) => {
             //jezeli juz zaznaczony i tryb dodawania, nic nie rob
             if (prev.has(slot) === (dragMode.current === "add")) return prev
 
@@ -66,14 +74,13 @@ export default function AvailabilityGrid() {
         }
     }, [])
 
-    // uklad siatki nie zmienia sie przy zaznaczaniu, wiec liczymy go raz
+    // uklad siatki nie zmienia sie przy zZZaznaczaniu, wiec liczymy go raz
     const { days, times, lookup } = useMemo(() => {
-        const slots = generateSlots(s.dates, s.startTime, s.endTime, s.slotMinutes, s.timeZone);
         // 1. kazdy slot -> slot + dzien + godzina w strefie wydarzenia
         const cells = slots.map((slot) => ({
             slot,
-            day: format(new Date(slot), "yyyy-MM-dd", { in: tz(s.timeZone) }),
-            time: format(new Date(slot), "HH:mm", { in: tz(s.timeZone) }),
+            day: format(new Date(slot), "yyyy-MM-dd", { in: tz(timeZone) }),
+            time: format(new Date(slot), "HH:mm", { in: tz(timeZone) }),
         }));
         // 2. unikalne dni (kolumny) i godziny (wiersze)
         const days = [...new Set(cells.map((c) => c.day))].sort();
@@ -81,14 +88,14 @@ export default function AvailabilityGrid() {
         // 3. slownik do wyszukiwania komorki
         const lookup = new Map(cells.map((c) => [`${c.day}|${c.time}`, c.slot]));
         return { days, times, lookup };
-    }, [s]);
+    }, [slots, timeZone]);
 
     // 4. CSS Grid wypelnia wierszami: petla zewnetrzna po godzinach, wewnetrzna po dniach
     return (
         <div
             className="grid gap-1 touch-none select-none"
-            onPointerDown={handlePointerDown}/*gdy uytkownik naciśnie nad tabelą */
-            onPointerMove={handlePointerMove}/*aktywacja gdy kursor zmienia swoje polozenie*/
+            onPointerDown={editable ? handlePointerDown : undefined}/*gdy uytkownik naciśnie nad tabelą */
+            onPointerMove={editable ? handlePointerMove : undefined}/*aktywacja gdy kursor zmienia swoje polozenie*/
             style={{ gridTemplateColumns: `auto repeat(${days.length}, 1fr)` }}
         >
             <div />
@@ -100,6 +107,19 @@ export default function AvailabilityGrid() {
                     <div className="pr-2 text-right">{time}</div>
                     {days.map((day) => {
                         const slot = lookup.get(`${day}|${time}`);
+                        if (slot && mode === "heatmap") {
+                            const info = result?.[slot];
+                            // participantCount = 0 -> brak dzielenia przez 0, pusta heatmapa
+                            const ratio = info && participantCount > 0 ? info.count / participantCount : 0;
+                            return (
+                                <div
+                                    key={`${day}|${time}`}
+                                    title={info?.names.join(", ")}
+                                    className="h-8 border rounded bg-white"
+                                    style={{ backgroundColor: `rgba(34, 197, 94, ${ratio})` }}
+                                />
+                            );
+                        }
                         return slot ? (
                             <div
                                 key={`${day}|${time}`}

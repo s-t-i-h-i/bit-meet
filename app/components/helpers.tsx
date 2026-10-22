@@ -2,7 +2,7 @@ import { parse } from 'date-fns';
 import { tz } from '@date-fns/tz';
 
 type Participant = { name: string; slots: string[] };
-type SlotInfo = { count: number; names: string[] };
+export type SlotInfo = { count: number; names: string[] };
 type BestSlot = { start: string; end: string; count: number; names: string[] };
 
 

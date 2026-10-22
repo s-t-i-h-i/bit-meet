@@ -1,42 +1,53 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation"
-import { generateSlots } from "@/app/components/helpers";
-import { hashToken } from "@/lib/tokens";
-import { cookies } from "next/headers";
+import { aggregate, generateSlots } from "@/app/components/helpers";
+import { getCurrentParticipant, isAdmin } from "@/lib/participant";
+import EventView from "./eventView";
 
-
-
-// params to promise dlatego async
-export default async function EventPage({ params }: PageProps<"/e/[slug]">) {
+// komponent serwerowy strony wydarzenia.
+// Pobiera dane z bazy, liczy wynik i przekazuje gotowe dane do komponentu klienckiego z siatka.
+export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
 
-    // zdobac dane wydarzenia z bazy danych
-    const event = await prisma.event.findUnique({where: {slug}})
-    if (!event){
-        notFound();
-    }
+    // 1. Wydarzenie
+    const event = await prisma.event.findUnique({ where: { slug } });
+    if (!event) notFound();
 
-    //wygenerowanie listy slotów na podstawie danych z database
+    // 2. Uczestnicy + ich sloty, tylko potrzebne pola
+    const participants = await prisma.participant.findMany({
+        where: { eventId: event.id },
+        select: { id: true, name: true, availability: { select: { slot: true } } },
+    });
+
+    // 3. Format dla aggregate
+    const forAggregate = participants.map((p) => ({ name: p.name, slots: p.availability.map((a) => a.slot) }));
+
+    // 4. Siatka i wynik
     const dates = JSON.parse(event.dates) as string[];
     const slots = generateSlots(dates, event.startMinutes, event.endMinutes, event.slotMinutes, event.timeZone);
-    
-    // sprawdz czy to zalozyciel wydarzenia (cookie z tokenem admina)
-    const cookieStore = await cookies();
-    const adminToken = cookieStore.get(`admin_${slug}`)?.value;
-    const isAdmin =  adminToken !== undefined && hashToken(adminToken) === event.adminTokenHash;
+    const result = aggregate(slots, forAggregate);
 
+    // 5. Biezacy uzytkownik
+    const me = await getCurrentParticipant(event.id, slug);
+    const initialSelected = me
+        ? participants.find((p) => p.id === me.id)?.availability.map((a) => a.slot) ?? []
+        : [];
 
+    // 6. Tworca
+    const admin = await isAdmin(event);
+
+    // do klienta tylko potrzebne pola (bez id, tokenHash, adminTokenHash)
     return (
-        <main>
-        <h1>{event.name}</h1>
-        {isAdmin && <p>Jesteś twórcą tego wydarzenia.</p>}
-
-        <h2>Sloty ({slots.length})</h2>
-        <ul>
-            {slots.map((slot) => (
-            <li key={slot}>{slot}</li>
-            ))}
-        </ul>
-        </main>
+        <EventView
+            slug={slug}
+            eventName={event.name}
+            slots={slots}
+            timeZone={event.timeZone}
+            me={me ? { name: me.name } : null}
+            initialSelected={initialSelected}
+            result={result}
+            participantCount={participants.length}
+            isAdmin={admin}
+        />
     );
 }

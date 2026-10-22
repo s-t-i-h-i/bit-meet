@@ -1,0 +1,64 @@
+"use client"
+import { useActionState, useState, useTransition } from "react"
+import AvailabilityGrid from "@/app/components/availabilityGrid"
+import type { SlotInfo } from "@/app/components/helpers"
+import { joinEvent, saveAvailability } from "@/app/actions"
+
+type Props = {
+    slug: string;
+    eventName: string;
+    slots: string[];
+    timeZone: string;
+    me: { name: string } | null;
+    initialSelected: string[];
+    result: Record<string, SlotInfo>;
+    participantCount: number;
+    isAdmin: boolean;
+};
+
+export default function EventView({ slug, eventName, slots, timeZone, me, initialSelected, result, participantCount, isAdmin }: Props) {
+    // useState ignoruje nowe initialSelected po zapisie - lokalny stan jest juz aktualny
+    const [selected, setSelected] = useState(() => new Set(initialSelected))
+    const [isPending, startTransition] = useTransition()
+    const [saveError, setSaveError] = useState<string | null>(null)
+    const [state, formAction, pending] = useActionState(joinEvent.bind(null, slug), { error: null })
+
+    const handleSave = () => {
+        setSaveError(null)
+        startTransition(async () => {
+            const res = await saveAvailability(slug, [...selected])
+            if (res.error) setSaveError(res.error)
+        })
+    }
+
+    return (
+        <main className="flex flex-col gap-6 p-8">
+            <h1 className="text-2xl font-semibold">{eventName}</h1>
+
+            {isAdmin && <div className="text-sm text-gray-600">Jesteś twórcą wydarzenia.</div>}
+
+            {me ? (
+                <section>
+                    <h2 className="mb-2 font-semibold">Twoja dostępność ({me.name})</h2>
+                    <AvailabilityGrid slots={slots} timeZone={timeZone} mode="edit" selectedSlots={selected} setSelectedSlots={setSelected} />
+                    <button type="button" onClick={handleSave} disabled={isPending} className="mt-2 rounded border px-3 py-1">
+                        {isPending ? "Zapisywanie…" : "Zapisz"}
+                    </button>
+                    {saveError && <p className="text-red-600">{saveError}</p>}
+                </section>
+            ) : (
+                <form action={formAction} className="flex flex-col items-start gap-2">
+                    <label htmlFor="name">Podaj imię, żeby zaznaczyć dostępność</label>
+                    <input id="name" name="name" maxLength={30} required className="rounded border px-2 py-1" />
+                    <button type="submit" disabled={pending} className="rounded border px-3 py-1">Dołącz</button>
+                    {state.error && <p className="text-red-600">{state.error}</p>}
+                </form>
+            )}
+
+            <section>
+                <h2 className="mb-2 font-semibold">Wszyscy ({participantCount})</h2>
+                <AvailabilityGrid slots={slots} timeZone={timeZone} mode="heatmap" result={result} participantCount={participantCount} />
+            </section>
+        </main>
+    )
+}
