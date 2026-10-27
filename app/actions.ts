@@ -19,6 +19,7 @@ const toMinutes = (time: string) => {
 type JoinState = { error: string | null };
 
 
+//aktywowane po nacisnieciu przycisku w form
 export async function createEvent(formData: FormData) {
   //to send
   const name = String(formData.get("name") ?? "").trim();
@@ -30,7 +31,7 @@ export async function createEvent(formData: FormData) {
 
   //walidacja wartości
   // Server Action to publiczny POST - walidacja musi byc tu, nie tylko w formularzu
-  if (!name || name.length > 100) throw new Error("Podaj imię (1–30 znaków)");
+  if (!name || name.length > 30) throw new Error("Podaj imię (1–30 znaków)");
   if (dates.length === 0 || dates.length > MAX_DAYS || !dates.every((d) => DATE_RE.test(d))) {
     throw new Error("Niepoprawne daty");
   }
@@ -42,6 +43,7 @@ export async function createEvent(formData: FormData) {
   // losowy token
   const token = generateToken();
   const adminTokenHash = hashToken(token);
+  // id eventu wyswietlane w url
   const slug = nanoid(10);
 
   // zapis w bazie danych
@@ -66,7 +68,7 @@ export async function createEvent(formData: FormData) {
     maxAge: 60 * 60 * 24 * 365,
   });
 
-  // redirect dziala przez rzucenie wyjatku - musi byc poza try/catch
+  // redirect na strone eventu
   redirect(`/e/${slug}`);
 }
 
@@ -151,4 +153,62 @@ export async function saveAvailability(slug: string, slots: string[]): Promise<S
 
   revalidatePath(`/e/${slug}`);
   return { ok: true };
+}
+
+//todo dodac typ danych ktory zwraca funkcja
+export async function clearAvailability(slug:string){
+  const auth = await requireParticipant(slug);
+    if ("error" in auth) return { error: auth.error };
+    const {participant} = auth;
+
+  await prisma.availability.deleteMany({
+    where: {participantId: participant.id}
+  })
+
+  revalidatePath(`/e/${slug}`)
+  return { ok: true }
+}
+
+export async function leaveEvent(slug:string){
+  const auth = await requireParticipant(slug);
+  if ("error" in auth) return { error: auth.error };
+  const {participant} = auth;
+  
+  await prisma.participant.delete({
+    where: {id: participant.id}
+  });
+
+  //usun nieaktualne juz cookie
+  (await cookies()).delete({
+    name: `p_${slug}`,
+    path: '/'
+  });
+
+  revalidatePath(`/e/${slug}`)
+  return { ok: true}
+}
+
+export async function removeParticipant(slug:string, participantId:string){
+  //sprawdzic token admina
+  const adminToken = (await cookies()).get(`admin_${slug}`)?.value
+  if (!adminToken) return {error: "Brak uprawnień"}
+
+  const hashToCheck = hashToken(adminToken)
+  const event = await prisma.event.findFirst({
+    where: { slug, adminTokenHash: hashToCheck },
+  });
+
+  if (!event) return { error: "Brak uprawnień" };
+
+  const {count} = await prisma.participant.deleteMany({where:
+    {
+      id: participantId,
+      eventId: event.id
+    }
+  });
+  if (count === 0) return {error: "Nie znaleziono uczestnika"}
+
+  revalidatePath(`/e/${slug}`)
+  return { ok: true}
+
 }

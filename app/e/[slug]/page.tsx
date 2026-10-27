@@ -39,6 +39,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     // do klienta tylko potrzebne pola (bez id, tokenHash, adminTokenHash)
     return (
         <EventView
+            key={me?.id ?? "guest"}
+            participants={admin ? participants.map((p) => ({ id: p.id, name: p.name })) : undefined}
             slug={slug}
             eventName={event.name}
             slots={slots}
