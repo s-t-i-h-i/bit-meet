@@ -1,7 +1,7 @@
 import Image from "next/image";
 import DatePicker, { CreateEventButton, SelectedDatesProvider } from "./components/createEventForm";
 import { createEvent } from "./actions";
-import { DotPattern } from "@/components/ui/dot-pattern";
+import { Gradient } from "@/components/ui/gradient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,18 @@ const SLOT_OPTIONS = [
   { value: "60", label: "60 min" },
 ];
 
+// odcienie pomaranczu dla 5 plam gradientu (jasny brzoskwiniowy -> gleboki rdzawy)
+const GRADIENT_COLORS = [
+  "oklch(0.83 0.12 70)",
+  "oklch(0.72 0.18 50)",
+  "oklch(0.78 0.16 80)",
+  "oklch(0.65 0.2 40)",
+  "oklch(0.75 0.17 60)",
+];
+
 export default function Home() {
   return (
-    <DotPattern className="flex flex-1 flex-col bg-muted/40">
+    <Gradient colors={GRADIENT_COLORS} className="flex flex-1 flex-col">
       <main className="flex flex-1 flex-col items-center gap-10 px-4 py-16">
         <h1 className="flex items-end justify-center gap-4">
           <Image src="/logo.png" alt="BIT" width={1800} height={874} priority className="h-24 w-auto dark:invert" />
@@ -73,6 +82,6 @@ export default function Home() {
           </CardContent>
         </Card>
       </main>
-    </DotPattern>
+    </Gradient>
   );
 }

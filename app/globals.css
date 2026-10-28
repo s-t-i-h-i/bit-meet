@@ -52,26 +52,65 @@
     translate: 339.41px 0;
     }
   }
-}
+  --animate-gradient-wander: gradient-wander-x calc(var(--gradient-tx) * 8 / var(--gradient-speed, 1)) ease-in-out calc(var(--gradient-tx) * var(--gradient-px) / var(--gradient-speed, 1) * -1) infinite, gradient-wander-y calc(var(--gradient-ty) * 8 / var(--gradient-speed, 1)) ease-in-out calc(var(--gradient-ty) * var(--gradient-py) / var(--gradient-speed, 1) * -1) infinite
+;
+  @keyframes gradient-wander-x {
+  0% {
+    translate: calc(var(--gradient-dx) * -0.5) 0;}
+  12.5% {
+    translate: calc(var(--gradient-dx) * 0.5) 0;}
+  25% {
+    translate: calc(var(--gradient-dx) * -0.5) 0;}
+  37.5% {
+    translate: calc(var(--gradient-dx) * 0.5) 0;}
+  50% {
+    translate: calc(var(--gradient-dx) * -0.5) 0;}
+  62.5% {
+    translate: calc(var(--gradient-dx) * 0.5) 0;}
+  75% {
+    translate: calc(var(--gradient-dx) * -0.5) 0;}
+  87.5% {
+    translate: calc(var(--gradient-dx) * 0.5) 0;}
+  100% {
+    translate: calc(var(--gradient-dx) * -0.5) 0;}}
+  @keyframes gradient-wander-y {
+  0% {
+    transform: translateY(calc(var(--gradient-dy) * -0.5));}
+  12.5% {
+    transform: translateY(calc(var(--gradient-dy) * 0.5));}
+  25% {
+    transform: translateY(calc(var(--gradient-dy) * -0.5));}
+  37.5% {
+    transform: translateY(calc(var(--gradient-dy) * 0.5));}
+  50% {
+    transform: translateY(calc(var(--gradient-dy) * -0.5));}
+  62.5% {
+    transform: translateY(calc(var(--gradient-dy) * 0.5));}
+  75% {
+    transform: translateY(calc(var(--gradient-dy) * -0.5));}
+  87.5% {
+    transform: translateY(calc(var(--gradient-dy) * 0.5));}
+  100% {
+    transform: translateY(calc(var(--gradient-dy) * -0.5));}}}
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.95 0.025 78);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: oklch(0.975 0.022 82);
   --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.975 0.022 82);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.925 0.03 78);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --muted: oklch(0.925 0.03 78);
+  --muted-foreground: oklch(0.52 0.02 70);
+  --accent: oklch(0.925 0.03 78);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.87 0.032 75);
+  --input: oklch(0.87 0.032 75);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -189,3 +228,100 @@
     right: 0;
     top: 0;
 }
+  @property --gradient-color-1 {
+    inherits: true;
+    initial-value: oklch(0.77 0.14 178);
+    syntax: '<color>';}
+  @property --gradient-color-2 {
+    inherits: true;
+    initial-value: oklch(0.6 0.22 285);
+    syntax: '<color>';}
+  @property --gradient-color-3 {
+    inherits: true;
+    initial-value: oklch(0.68 0.16 245);
+    syntax: '<color>';}
+  @property --gradient-color-4 {
+    inherits: true;
+    initial-value: oklch(0.7 0.25 340);
+    syntax: '<color>';}
+  @property --gradient-color-5 {
+    inherits: true;
+    initial-value: oklch(0.57 0.26 297);
+    syntax: '<color>';}
+
+@utility gradient-blob {
+    background-image: radial-gradient(closest-side, color-mix(in oklab, var(--gradient-c) calc(var(--gradient-a) * 1 * var(--gradient-strength, 1)), transparent) 0%, color-mix(in oklab, var(--gradient-c) calc(var(--gradient-a) * 0.7 * var(--gradient-strength, 1)), transparent) 35%, color-mix(in oklab, var(--gradient-c) calc(var(--gradient-a) * 0.3 * var(--gradient-strength, 1)), transparent) 65%, color-mix(in oklab, var(--gradient-c) calc(var(--gradient-a) * 0.08 * var(--gradient-strength, 1)), transparent) 88%, transparent);
+    height: var(--gradient-size);
+    left: calc(var(--gradient-x) - var(--gradient-size) / 2);
+    position: absolute;
+    top: calc(var(--gradient-y) - var(--gradient-size) / 2);
+    width: var(--gradient-size);}
+
+@utility gradient-blob-1 {
+    --gradient-a: 45%;
+    --gradient-c: var(--gradient-color-1);
+    --gradient-dx: 30%;
+    --gradient-dy: 30%;
+    --gradient-px: 0.2;
+    --gradient-py: 1.1;
+    --gradient-size: calc(0.7 * (75cqmin + 25cqmax));
+    --gradient-tx: 9s;
+    --gradient-ty: 12s;
+    --gradient-x: 20%;
+    --gradient-y: 33%;}
+
+@utility gradient-blob-2 {
+    --gradient-a: 40%;
+    --gradient-c: var(--gradient-color-2);
+    --gradient-dx: -25%;
+    --gradient-dy: 22%;
+    --gradient-px: 1.3;
+    --gradient-py: 0.4;
+    --gradient-size: calc(0.8 * (75cqmin + 25cqmax));
+    --gradient-tx: 12s;
+    --gradient-ty: 9.5s;
+    --gradient-x: 66%;
+    --gradient-y: 30%;}
+
+@utility gradient-blob-3 {
+    --gradient-a: 40%;
+    --gradient-c: var(--gradient-color-3);
+    --gradient-dx: 30%;
+    --gradient-dy: -25%;
+    --gradient-px: 0.7;
+    --gradient-py: 1.6;
+    --gradient-size: calc(0.65 * (75cqmin + 25cqmax));
+    --gradient-tx: 8s;
+    --gradient-ty: 11s;
+    --gradient-x: 34%;
+    --gradient-y: 66%;}
+
+@utility gradient-blob-4 {
+    --gradient-a: 35%;
+    --gradient-c: var(--gradient-color-4);
+    --gradient-dx: -25%;
+    --gradient-dy: -20%;
+    --gradient-px: 1.7;
+    --gradient-py: 0.9;
+    --gradient-size: calc(0.75 * (75cqmin + 25cqmax));
+    --gradient-tx: 10.5s;
+    --gradient-ty: 13s;
+    --gradient-x: 76%;
+    --gradient-y: 70%;}
+
+@utility gradient-blob-5 {
+    --gradient-a: 35%;
+    --gradient-c: var(--gradient-color-5);
+    --gradient-dx: 22%;
+    --gradient-dy: 22%;
+    --gradient-px: 0.5;
+    --gradient-py: 1.8;
+    --gradient-size: calc(0.6 * (75cqmin + 25cqmax));
+    --gradient-tx: 7.5s;
+    --gradient-ty: 10s;
+    --gradient-x: 48%;
+    --gradient-y: 46%;}
+
+@utility gradient-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='g' x='0' y='0' width='1' height='1'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='4 0 0 0 -1.5 4 0 0 0 -1.5 4 0 0 0 -1.5 0 0 0 0 .1'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;}
