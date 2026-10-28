@@ -2,6 +2,12 @@
 import { useActionState, useState, useTransition } from "react"
 import AvailabilityGrid from "@/app/components/availabilityGrid"
 import type { SlotInfo } from "@/app/components/helpers"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { clearAvailability, joinEvent, leaveEvent, removeParticipant, saveAvailability } from "@/app/actions"
 
 type Props = {
@@ -60,48 +66,92 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
     }
 
     return (
-        <main className="flex flex-col gap-6 p-8">
-            <h1 className="text-2xl font-semibold">{eventName}</h1>
+        <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
+            <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-semibold tracking-tight">{eventName}</h1>
+                {isAdmin && <Badge variant="secondary">Twórca</Badge>}
+            </div>
+
+            {saveError && (
+                <Alert variant="destructive">
+                    <AlertDescription>{saveError}</AlertDescription>
+                </Alert>
+            )}
 
             {isAdmin && (
-                <section>
-                    <h2 className="mb-2 font-semibold">Panel twórcy</h2>
-                    <ul className="flex flex-col gap-1">
-                        {participants.map((p) => (
-                            <li key={p.id} className="flex items-center gap-2">
-                                <span>{p.name}</span>
-                                <button type="button" onClick={() => handleRemove(p.id, p.name)} disabled={isPending} className="rounded border px-2 text-sm">Usuń</button>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Panel twórcy</CardTitle>
+                        <CardDescription>Uczestnicy ({participants.length})</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {participants.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Nikt jeszcze nie dołączył.</p>
+                        ) : (
+                            <ul className="flex flex-col divide-y">
+                                {participants.map((p) => (
+                                    <li key={p.id} className="flex items-center justify-between py-2">
+                                        <span>{p.name}</span>
+                                        <Button type="button" variant="destructive" size="sm" onClick={() => handleRemove(p.id, p.name)} disabled={isPending}>
+                                            Usuń
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </CardContent>
+                </Card>
             )}
-
-            {saveError && <p className="text-red-600">{saveError}</p>}
 
             {me ? (
-                <section>
-                    <h2 className="mb-2 font-semibold">Twoja dostępność ({me.name})</h2>
-                    <AvailabilityGrid slots={slots} timeZone={timeZone} mode="edit" selectedSlots={selected} setSelectedSlots={setSelected} />
-                    <button type="button" onClick={handleSave} disabled={isPending} className="mt-2 rounded border px-3 py-1">
-                        {isPending ? "Zapisywanie…" : "Zapisz"}
-                    </button>
-                    <button type="button" onClick={handleClear} disabled={isPending} className="mt-2 ml-2 rounded border px-3 py-1">Wyczyść</button>
-                    <button type="button" onClick={handleLeave} disabled={isPending} className="mt-2 ml-2 rounded border px-3 py-1">Opuść</button>
-                </section>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Twoja dostępność</CardTitle>
+                        <CardDescription>{me.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode="edit" selectedSlots={selected} setSelectedSlots={setSelected} />
+                        <div className="flex flex-wrap gap-2">
+                            <Button type="button" onClick={handleSave} disabled={isPending}>
+                                {isPending ? "Zapisywanie…" : "Zapisz"}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
+                            <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
+                        </div>
+                    </CardContent>
+                </Card>
             ) : (
-                <form action={formAction} className="flex flex-col items-start gap-2">
-                    <label htmlFor="name">Podaj imię, żeby zaznaczyć dostępność</label>
-                    <input id="name" name="name" maxLength={30} required className="rounded border px-2 py-1" />
-                    <button type="submit" disabled={pending} className="rounded border px-3 py-1">Dołącz</button>
-                    {state.error && <p className="text-red-600">{state.error}</p>}
-                </form>
+                <Card className="max-w-md">
+                    <CardHeader>
+                        <CardTitle>Dołącz do wydarzenia</CardTitle>
+                        <CardDescription>Podaj imię, żeby zaznaczyć dostępność.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form action={formAction} className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="name">Imię</Label>
+                                <Input id="name" name="name" maxLength={30} required />
+                            </div>
+                            {state.error && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{state.error}</AlertDescription>
+                                </Alert>
+                            )}
+                            <Button type="submit" disabled={pending}>Dołącz</Button>
+                        </form>
+                    </CardContent>
+                </Card>
             )}
 
-            <section>
-                <h2 className="mb-2 font-semibold">Wszyscy ({participantCount})</h2>
-                <AvailabilityGrid slots={slots} timeZone={timeZone} mode="heatmap" result={result} participantCount={participantCount} />
-            </section>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Wszyscy</CardTitle>
+                    <CardDescription>Uczestnicy: {participantCount} · ciemniejsze pole = więcej osób</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AvailabilityGrid slots={slots} timeZone={timeZone} mode="heatmap" result={result} participantCount={participantCount} />
+                </CardContent>
+            </Card>
         </main>
     )
 }

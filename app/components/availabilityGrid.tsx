@@ -93,18 +93,18 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
     // 4. CSS Grid wypelnia wierszami: petla zewnetrzna po godzinach, wewnetrzna po dniach
     return (
         <div
-            className="grid gap-1 touch-none select-none"
+            className="grid gap-1 touch-none select-none text-sm"
             onPointerDown={editable ? handlePointerDown : undefined}/*gdy uytkownik naciśnie nad tabelą */
             onPointerMove={editable ? handlePointerMove : undefined}/*aktywacja gdy kursor zmienia swoje polozenie*/
             style={{ gridTemplateColumns: `auto repeat(${days.length}, 1fr)` }}
         >
             <div />
             {days.map((day) => (
-                <div key={day} className="text-center font-semibold">{day}</div>
+                <div key={day} className="text-center font-medium">{day}</div>
             ))}
             {times.map((time) => (
                 <Fragment key={time}>
-                    <div className="pr-2 text-right">{time}</div>
+                    <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground">{time}</div>
                     {days.map((day) => {
                         const slot = lookup.get(`${day}|${time}`);
                         if (slot && mode === "heatmap") {
@@ -115,8 +115,8 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                                 <div
                                     key={`${day}|${time}`}
                                     title={info?.names.join(", ")}
-                                    className="h-8 border rounded bg-white"
-                                    style={{ backgroundColor: `rgba(34, 197, 94, ${ratio})` }}
+                                    className="h-8 rounded-md border bg-background"
+                                    style={{ backgroundColor: `color-mix(in oklab, var(--primary) ${Math.round(ratio * 100)}%, transparent)` }}
                                 />
                             );
                         }
@@ -124,7 +124,7 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                             <div
                                 key={`${day}|${time}`}
                                 data-slot={slot}
-                                className={`h-8 border rounded ${selectedSlots.has(slot) ? "bg-green-500" : "bg-white"}`}
+                                className={`h-8 rounded-md border transition-colors ${editable ? "cursor-pointer" : ""} ${selectedSlots.has(slot) ? "border-primary bg-primary" : "bg-background hover:bg-muted"}`}
                             />
                         ) : (
                             <div key={`${day}|${time}`} />

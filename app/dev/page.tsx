@@ -13,7 +13,7 @@ export default function DevPage() {
   );
 
   return (
-    <main className="p-8">
+    <main className="mx-auto max-w-4xl p-8">
       <AvailabilityGrid
         slots={slots}
         timeZone={s.timeZone}
