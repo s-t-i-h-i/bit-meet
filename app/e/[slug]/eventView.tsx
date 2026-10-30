@@ -1,5 +1,5 @@
 "use client"
-import { useActionState, useState, useTransition } from "react"
+import { useActionState, useMemo, useState, useTransition } from "react"
 import AvailabilityGrid from "@/app/components/availabilityGrid"
 import type { SlotInfo } from "@/app/components/helpers"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -18,17 +18,30 @@ type Props = {
     timeZone: string;
     me: { name: string } | null;
     initialSelected: string[];
-    result: Record<string, SlotInfo>;
+    othersResult: Record<string, SlotInfo>;
     participantCount: number;
     isAdmin: boolean;
 };
 
-export default function EventView({ slug, eventName, slots, timeZone, me, initialSelected, result, participantCount, isAdmin, participants = [] }: Props) {
+export default function EventView({ slug, eventName, slots, timeZone, me, initialSelected, othersResult, participantCount, isAdmin, participants = [] }: Props) {
     // useState ignoruje nowe initialSelected po zapisie - lokalny stan jest juz aktualny
     const [selected, setSelected] = useState(() => new Set(initialSelected))
     const [isPending, startTransition] = useTransition()
     const [saveError, setSaveError] = useState<string | null>(null)
     const [state, formAction, pending] = useActionState(joinEvent.bind(null, slug), { error: null })
+
+    //resultat ustalany na biezaco na podstawie zaznaczenia uzytkownika
+    const liveResult = useMemo(() => {
+        const out: Record<string, SlotInfo> = {}
+        //dla kazdego slotu
+        for (const slot of slots) {
+            // wydobac info o slocie, lub ustaw na 0 gdy nie ma
+            const info = othersResult[slot] ?? { count: 0, names: [] }
+            
+            out[slot] = me && selected.has(slot) ? {count: info.count + 1 , names: [...info.names, me.name] } : {count: info.count, names: info.names }
+        }
+        return out
+    }, [slots, othersResult, selected, me])
 
     const handleSave = () => {
         setSaveError(null)
@@ -103,14 +116,14 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
                 </Card>
             )}
 
-            {me ? (
+
                 <Card>
                     <CardHeader>
-                        <CardTitle>Twoja dostępność</CardTitle>
-                        <CardDescription>{me.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
+                        <CardTitle> dostępność</CardTitle>
+                        <CardDescription>{me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode="edit" selectedSlots={selected} setSelectedSlots={setSelected} />
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={selected} result={liveResult} participantCount={participantCount} setSelectedSlots={setSelected} />
                         <div className="flex flex-wrap gap-2">
                             <Button type="button" onClick={handleSave} disabled={isPending}>
                                 {isPending ? "Zapisywanie…" : "Zapisz"}
@@ -120,36 +133,25 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
                         </div>
                     </CardContent>
                 </Card>
-            ) : (
-                <Card className="max-w-md">
-                    <CardHeader>
-                        <CardTitle>Dołącz do wydarzenia</CardTitle>
-                        <CardDescription>Podaj imię, żeby zaznaczyć dostępność.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form action={formAction} className="flex flex-col gap-3">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="name">Imię</Label>
-                                <Input id="name" name="name" maxLength={30} required />
-                            </div>
-                            {state.error && (
-                                <Alert variant="destructive">
-                                    <AlertDescription>{state.error}</AlertDescription>
-                                </Alert>
-                            )}
-                            <Button type="submit" disabled={pending}>Dołącz</Button>
-                        </form>
-                    </CardContent>
-                </Card>
-            )}
 
-            <Card>
+            <Card className="max-w-md">
                 <CardHeader>
-                    <CardTitle>Wszyscy</CardTitle>
-                    <CardDescription>Uczestnicy: {participantCount} · ciemniejsze pole = więcej osób</CardDescription>
+                    <CardTitle>Dołącz do wydarzenia</CardTitle>
+                    <CardDescription>Podaj imię, żeby zaznaczyć dostępność.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <AvailabilityGrid slots={slots} timeZone={timeZone} mode="heatmap" result={result} participantCount={participantCount} />
+                    <form action={formAction} className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="name">Imię</Label>
+                            <Input id="name" name="name" maxLength={30} required />
+                        </div>
+                        {state.error && (
+                            <Alert variant="destructive">
+                                <AlertDescription>{state.error}</AlertDescription>
+                            </Alert>
+                        )}
+                        <Button type="submit" disabled={pending}>Dołącz</Button>
+                    </form>
                 </CardContent>
             </Card>
         </main>

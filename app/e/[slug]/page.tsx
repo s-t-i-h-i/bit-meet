@@ -19,19 +19,21 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         select: { id: true, name: true, availability: { select: { slot: true } } },
     });
 
-    // 3. Format dla aggregate
-    const forAggregate = participants.map((p) => ({ name: p.name, slots: p.availability.map((a) => a.slot) }));
-
-    // 4. Siatka i wynik
+    // 4. Siatka i wynik - OLD
     const dates = JSON.parse(event.dates) as string[];
     const slots = generateSlots(dates, event.startMinutes, event.endMinutes, event.slotMinutes, event.timeZone);
-    const result = aggregate(slots, forAggregate);
 
     // 5. Biezacy uzytkownik
     const me = await getCurrentParticipant(event.id, slug);
     const initialSelected = me
         ? participants.find((p) => p.id === me.id)?.availability.map((a) => a.slot) ?? []
         : [];
+
+    // version for unified calendar
+    const otherParticipants = participants.filter((p) => me?.id !== p.id)
+    const forAggregateOthers = otherParticipants.map((p) => ({ name: p.name, slots: p.availability.map((a) => a.slot) }));
+    const othersResult = aggregate(slots,forAggregateOthers)
+
 
     // 6. Tworca
     const admin = await isAdmin(event);
@@ -47,7 +49,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             timeZone={event.timeZone}
             me={me ? { name: me.name } : null}
             initialSelected={initialSelected}
-            result={result}
+            othersResult={othersResult}
             participantCount={participants.length}
             isAdmin={admin}
         />

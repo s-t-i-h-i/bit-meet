@@ -118,6 +118,7 @@ export async function joinEvent(
   });
 
   // odswiez strone, zeby serwer zobaczyl nowe cookie i uczestnika
+  //przekieruj na dynamiczny url
   revalidatePath(`/e/${slug}`);
   return { error: null };
 }

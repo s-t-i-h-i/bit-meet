@@ -13,7 +13,7 @@ const SLOT_OPTIONS = [
   { value: "60", label: "60 min" },
 ];
 
-// odcienie pomaranczu dla 5 plam gradientu (jasny brzoskwiniowy -> gleboki rdzawy)
+// odcienie pomaranczu dla 5 plam gradientu 
 const GRADIENT_COLORS = [
   "oklch(0.83 0.12 70)",
   "oklch(0.72 0.18 50)",

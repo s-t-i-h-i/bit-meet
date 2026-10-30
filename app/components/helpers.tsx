@@ -24,7 +24,7 @@ export function generateSlots(
             const hours = Math.floor(currentTime / 60).toString().padStart(2, "0");
             const minutes = (currentTime % 60).toString().padStart(2, "0");
 
-            // w obu ponizszych linijka liczba milisekund od 1970 roku jest taka sama - dlatego konwersja dziala 
+            // w obu ponizszych linijka liczba milisekund od 1970 roku do `teraz jest taka sama - dlatego konwersja dziala 
             // interpretuje date + godzine w strefie z timeZone
             const localDate = parse(`${date} ${hours}:${minutes}`, "yyyy-MM-dd HH:mm", new Date(), { in: tz(timeZone) });
             // dodaje do listy w formacie ISO
@@ -36,22 +36,23 @@ export function generateSlots(
 
 // dla kazdego slotu z listy sprawdzam ile osob ma w nim dostępność
 export function aggregate(allSlots: string[], participants: Participant[]): Record<string, SlotInfo> {
-const result: Record<string, SlotInfo> = {};
+    // slownik string(nazwa slota zbudowana w genrateslots) -> SlotInfo ktory tez jest slownikiem z iloscia uzytkownikow i ich imionami
+    const result: Record<string, SlotInfo> = {};
 
-allSlots.forEach((slot) => {
-    const slotInfo: SlotInfo = { count: 0, names: [] };
+    allSlots.forEach((slot) => {
+        const slotInfo: SlotInfo = { count: 0, names: [] };
 
-    participants.forEach((participant) => {
-    if (participant.slots.includes(slot)) {
-        slotInfo.count++;
-        slotInfo.names.push(participant.name);
-    }
+        participants.forEach((participant) => {
+        if (participant.slots.includes(slot)) {
+            slotInfo.count++;
+            slotInfo.names.push(participant.name);
+        }
+        });
+
+        result[slot] = slotInfo;
     });
 
-    result[slot] = slotInfo;
-});
-
-return result;
+    return result;
 }
 
 //TODO pozniej obslugs remisów

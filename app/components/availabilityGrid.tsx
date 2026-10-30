@@ -3,16 +3,17 @@ import { Fragment, useEffect, useMemo, useRef } from "react"
 import { format } from "date-fns"
 import { tz } from "@date-fns/tz"
 import type { SlotInfo } from "./helpers"
+import { Check } from "lucide-react"
 
 type Props = {
   slots: string[];
   timeZone: string;
-  mode: "edit" | "heatmap";
+  mode: "edit" | "view";
   // tryb edit
   selectedSlots?: Set<string>;
   setSelectedSlots?: React.Dispatch<React.SetStateAction<Set<string>>>;
-  // tryb heatmap
-  result?: Record<string, SlotInfo>;
+  //tylko view
+  result: Record<string, SlotInfo>;
   participantCount?: number;
 };
 
@@ -74,11 +75,11 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
         }
     }, [])
 
-    // uklad siatki nie zmienia sie przy zZZaznaczaniu, wiec liczymy go raz
+    // uklad siatki nie zmienia sie przy zaznaczaniu, wiec liczymy go raz
     const { days, times, lookup } = useMemo(() => {
         // 1. kazdy slot -> slot + dzien + godzina w strefie wydarzenia
         const cells = slots.map((slot) => ({
-            slot,
+            slot: slot,
             day: format(new Date(slot), "yyyy-MM-dd", { in: tz(timeZone) }),
             time: format(new Date(slot), "HH:mm", { in: tz(timeZone) }),
         }));
@@ -100,34 +101,36 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
         >
             <div />
             {days.map((day) => (
+                //dla kazdego dnia zbuduj nagłówek z jego datą
                 <div key={day} className="text-center font-medium">{day}</div>
             ))}
             {times.map((time) => (
+                //dla kazdej godziny 
                 <Fragment key={time}>
+                    {/*pierwsza kolumna to napisana godzina */}
                     <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground">{time}</div>
+                    {/*dla kazdego kafelka dnia */}
                     {days.map((day) => {
+                        //lookup to map w ktorym klucz to {day | time}
                         const slot = lookup.get(`${day}|${time}`);
-                        if (slot && mode === "heatmap") {
-                            const info = result?.[slot];
-                            // participantCount = 0 -> brak dzielenia przez 0, pusta heatmapa
-                            const ratio = info && participantCount > 0 ? info.count / participantCount : 0;
-                            return (
-                                <div
-                                    key={`${day}|${time}`}
-                                    title={info?.names.join(", ")}
-                                    className="h-8 rounded-md border bg-background"
-                                    style={{ backgroundColor: `color-mix(in oklab, var(--primary) ${Math.round(ratio * 100)}%, transparent)` }}
-                                />
-                            );
-                        }
-                        return slot ? (
+                        // wyswietlaj heatmape niezaleznie od trybu
+                        // heatmapa wyswietla sie na podstaie live result 
+                        // osobiste zaznaczenie powinno miec ramke i checkboxa
+                        // info slotu czyli count i imiona
+                        const info = slot  ? result[slot] : undefined;
+                        const count = info?.count ?? 0;
+                        const pct = participantCount > 0 ? Math.round((count / participantCount) * 100) : 0; 
+                        const isSelected = !!slot && selectedSlots.has(slot)                 
+                        return (
                             <div
                                 key={`${day}|${time}`}
+                                title={info?.names.join(", ")}
                                 data-slot={slot}
-                                className={`h-8 rounded-md border transition-colors ${editable ? "cursor-pointer" : ""} ${selectedSlots.has(slot) ? "border-primary bg-primary" : "bg-background hover:bg-muted"}`}
-                            />
-                        ) : (
-                            <div key={`${day}|${time}`} />
+                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer" : ""} ${isSelected ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:bg-muted" }`}
+                                style={{ backgroundColor: `color-mix(in oklab, var(--primary) ${pct}%, transparent)` }}
+                            >
+                            {isSelected && <Check className="size-4 text-white" strokeWidth={3}/>}
+                            </div>
                         );
                     })}
                 </Fragment>
