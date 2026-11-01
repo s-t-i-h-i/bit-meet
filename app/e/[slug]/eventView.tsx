@@ -100,13 +100,20 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
     }
 
     const handleConfimringFinal = () => {
+        setSaveError(null)
         startTransition(async() => {
             const res = await chooseFinalRange(slug,[...finalDraft])
+            // przy bledzie zostajemy w trybie wyboru, zeby tworca mogl poprawic zaznaczenie
             if (res.error) setSaveError(res.error)
-            setFinalDraft(new Set())
+            else {
+                setFinalDraft(new Set())
+                setPickingFinal(false)
+            }
         })
-        setPickingFinal(false)
     }
+
+    // termin wybrany -> zaznaczanie zablokowane (serwer i tak odrzuca zapisy)
+    const isFinalized = !!finalStart
 
 
     // lista uczestnikow - wspolna dla zakladki tworcy i widoku zwyklego uzytkownika
@@ -141,7 +148,20 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
                 </Alert>
             )}
 
-            {!me && (
+            {isFinalized && finalEnd && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            Termin spotkania:{" "}
+                            {new Date(finalStart).toLocaleString("pl-PL", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            {" – "}
+                            {new Date(finalEnd).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}
+                        </CardTitle>
+                    </CardHeader>
+                </Card>
+            )}
+
+            {!me && !isFinalized && (
             <Card>
                 <CardHeader>
                     <CardTitle>Dołącz do wydarzenia</CardTitle>
@@ -167,21 +187,30 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
                 <Card>
                     <CardHeader>
                         <CardTitle> {pickingFinal ? "Wybierz ostateczny termin spotkania" : "dostępność"}</CardTitle>
-                        <CardDescription>{!pickingFinal ? `${me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty` : "po wybraniu tego terminu zaznaczanie dostępności zostanie wyłączone"}</CardDescription>
+                        <CardDescription>
+                            {pickingFinal
+                                ? "po wybraniu tego terminu zaznaczanie dostępności zostanie wyłączone"
+                                : isFinalized
+                                    ? "Termin został wybrany - zaznaczanie dostępności jest wyłączone"
+                                    : `${me ? `${me.name} · ` : ""}kliknij lub przeciągnij, aby zaznaczyć sloty`}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={pickingFinal ? finalDraft : selected} finalSlots={finalSlots} result={liveResult} participantCount={participantCount} setSelectedSlots={pickingFinal ? setFinalDraft : setSelected} variant={pickingFinal ? 'final' : 'availability'}/>
-                        {me &&
+                        {/* tworca moze wybierac termin nawet bez dolaczenia jako uczestnik */}
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={!isFinalized && (pickingFinal || me) ? "edit" : "view"} selectedSlots={pickingFinal ? finalDraft : selected} finalSlots={finalSlots} result={liveResult} participantCount={participantCount} setSelectedSlots={pickingFinal ? setFinalDraft : setSelected} variant={pickingFinal ? 'final' : 'availability'}/>
+                        {(me || isAdmin) &&
                         <div className="flex flex-wrap gap-2">
 
-                            {!pickingFinal ? 
+                            {!pickingFinal ?
                             <>
-                                <Button type="button" onClick={handleSave} disabled={isPending}>
-                                    {isPending ? "Zapisywanie…" : "Zapisz"}
-                                </Button>
-                                <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
-                                {isAdmin &&<Button type="button" variant="outline" onClick={handlePickingFinal} disabled={isPending}>Ostateczny Termin</Button>}
-                                <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
+                                {me && !isFinalized && <>
+                                    <Button type="button" onClick={handleSave} disabled={isPending}>
+                                        {isPending ? "Zapisywanie…" : "Zapisz"}
+                                    </Button>
+                                    <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
+                                </>}
+                                {isAdmin && !isFinalized && <Button type="button" variant="outline" onClick={handlePickingFinal} disabled={isPending}>Ostateczny Termin</Button>}
+                                {me && <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>}
                             </>:
                             <>
                                 <Button type="button" variant="outline" onClick={handleConfimringFinal} disabled={isPending}>Wybierz Termin</Button>

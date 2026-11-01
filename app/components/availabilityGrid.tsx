@@ -15,11 +15,12 @@ type Props = {
   //tylko view
   result: Record<string, SlotInfo>;
   participantCount?: number;
-  variant: "availability" | "final"
+  // final = tworca zaznacza ostateczny termin (zaznaczenie na czerwono)
+  variant?: "availability" | "final"
   finalSlots?: Set<string>
 };
 
-export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots = new Set(), setSelectedSlots, result, participantCount = 0, variant, finalSlots }: Props) {
+export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots = new Set(), setSelectedSlots, result, participantCount = 0, variant = "availability", finalSlots }: Props) {
     const editable = mode === "edit" && !!setSelectedSlots
 
     // przeciaganie: nie wplywa na wyglad, wiec refy zamiast stanu (bez opoznienia miedzy zdarzeniami)
@@ -42,7 +43,7 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
 
     const slotAt = (e: React.PointerEvent) =>
         document.elementFromPoint(e.clientX, e.clientY)
-            ?.closest<HTMLElement>("[data-slot]")?.dataset.slot
+            ?.closest<HTMLElement>("[data-cell]")?.dataset.cell
 
     const handlePointerDown = (e: React.PointerEvent) => {
         //na jaki slot
@@ -129,8 +130,9 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                             <div
                                 key={`${day}|${time}`}
                                 title={info?.names.join(", ")}
-                                data-slot={slot}
-                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer" : ""} ${(isSelected && variant==="availability") ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:bg-muted" }`}
+                                // nie data-slot - tego atrybutu uzywaja komponenty shadcn (np. data-slot="card-content")
+                                data-cell={slot}
+                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer hover:opacity-80" : ""} ${(isSelected && variant==="availability") ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "" }`}
                                 style={{
                                     backgroundColor: (isFinal || isDraftFinal)
                                         ? "var(--destructive)"

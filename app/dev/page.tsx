@@ -19,6 +19,7 @@ export default function DevPage() {
         timeZone={s.timeZone}
         selectedSlots={selected}
         setSelectedSlots={setSelected}
+        result={{}}
         mode="edit"
       />
     </main>
