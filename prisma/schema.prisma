@@ -17,6 +17,8 @@ model Event {
   slug           String        @unique
   name           String
   dates          String // JSON: lista dat "YYYY-MM-DD" (SQLite nie ma tablic)
+  finalStart     String? // ISO poczatku pierwszego slotu, null = termin jeszcze nie wybrany
+  finalEnd       String? // ISO konca ostatniego slotu (ostatni slot + slotMinutes)
   startMinutes   Int
   endMinutes     Int
   slotMinutes    Int

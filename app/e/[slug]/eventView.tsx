@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { clearAvailability, joinEvent, leaveEvent, removeParticipant, saveAvailability } from "@/app/actions"
+import { chooseFinalRange, clearAvailability, joinEvent, leaveEvent, removeParticipant, saveAvailability } from "@/app/actions"
 import { Tabs, TabsTrigger,TabsList, TabsContent } from "@/components/ui/tabs"
 
 type Props = {
@@ -18,6 +18,8 @@ type Props = {
     slots: string[];
     timeZone: string;
     slotMinutes: number;
+    finalStart?: string | null;
+    finalEnd?: string | null;
     me: { name: string } | null;
     initialSelected: string[];
     othersResult: Record<string, SlotInfo>;
@@ -25,9 +27,11 @@ type Props = {
     isAdmin: boolean;
 };
 
-export default function EventView({ slug, eventName, slots, timeZone, slotMinutes, me, initialSelected, othersResult, participantCount, isAdmin, participants = [] }: Props) {
+export default function EventView({ slug, eventName, slots, timeZone, slotMinutes, me, initialSelected, othersResult, participantCount, isAdmin,finalEnd,finalStart, participants = [] }: Props) {
     // useState ignoruje nowe initialSelected po zapisie - lokalny stan jest juz aktualny
     const [selected, setSelected] = useState(() => new Set(initialSelected))
+    const [pickingFinal, setPickingFinal] = useState(false)
+    const [finalDraft, setFinalDraft] = useState<Set<string>>(new Set())
     const [isPending, startTransition] = useTransition()
     const [saveError, setSaveError] = useState<string | null>(null)
     const [state, formAction, pending] = useActionState(joinEvent.bind(null, slug), { error: null })
@@ -44,6 +48,12 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
         }
         return out
     }, [slots, othersResult, selected, me])
+
+    const finalSlots = useMemo(() => {
+        if(!finalStart || !finalEnd)return new Set<string>();
+        //porownywanie stringo w ISO, porownywanie alfabetycznego ukladu
+        return new Set(slots.filter((s) => s>= finalStart && s < finalEnd))
+    },[slots,finalStart,finalEnd])
 
     const handleSave = () => {
         setSaveError(null)
@@ -79,6 +89,25 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
             if (res.error) setSaveError(res.error)
         })
     }
+    
+    const handlePickingFinal = () => {
+        setPickingFinal(true)
+    }
+
+    const handleLeavingPickingFinal = () => {
+        setPickingFinal(false)
+        setFinalDraft(new Set())
+    }
+
+    const handleConfimringFinal = () => {
+        startTransition(async() => {
+            const res = await chooseFinalRange(slug,[...finalDraft])
+            if (res.error) setSaveError(res.error)
+            setFinalDraft(new Set())
+        })
+        setPickingFinal(false)
+    }
+
 
     // lista uczestnikow - wspolna dla zakladki tworcy i widoku zwyklego uzytkownika
     const participantList = participants.length === 0 ? (
@@ -137,18 +166,27 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
 
                 <Card>
                     <CardHeader>
-                        <CardTitle> dostępność</CardTitle>
-                        <CardDescription>{me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
+                        <CardTitle> {pickingFinal ? "Wybierz ostateczny termin spotkania" : "dostępność"}</CardTitle>
+                        <CardDescription>{!pickingFinal ? `${me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty` : "po wybraniu tego terminu zaznaczanie dostępności zostanie wyłączone"}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={selected} result={liveResult} participantCount={participantCount} setSelectedSlots={setSelected} />
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={pickingFinal ? finalDraft : selected} finalSlots={finalSlots} result={liveResult} participantCount={participantCount} setSelectedSlots={pickingFinal ? setFinalDraft : setSelected} variant={pickingFinal ? 'final' : 'availability'}/>
                         {me &&
                         <div className="flex flex-wrap gap-2">
-                            <Button type="button" onClick={handleSave} disabled={isPending}>
-                                {isPending ? "Zapisywanie…" : "Zapisz"}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
-                            <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
+
+                            {!pickingFinal ? 
+                            <>
+                                <Button type="button" onClick={handleSave} disabled={isPending}>
+                                    {isPending ? "Zapisywanie…" : "Zapisz"}
+                                </Button>
+                                <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
+                                {isAdmin &&<Button type="button" variant="outline" onClick={handlePickingFinal} disabled={isPending}>Ostateczny Termin</Button>}
+                                <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
+                            </>:
+                            <>
+                                <Button type="button" variant="outline" onClick={handleConfimringFinal} disabled={isPending}>Wybierz Termin</Button>
+                                <Button type="button" variant="destructive" onClick={handleLeavingPickingFinal} disabled={isPending}>Anuluj</Button>
+                            </>}
                         </div>}
                     </CardContent>
                 </Card>

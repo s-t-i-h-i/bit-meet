@@ -86,6 +86,8 @@ export async function joinEvent(
   if (!event) {
     return { error: "Nie znaleziono wydarzenia"}
   }
+  // po wyborze terminu nie mozna juz dolaczyc
+  if (event.finalStart) return { error: "Termin został już wybrany" }
 
   const name = String(formData.get("name") ?? "").trim()
   if (name.length === 0 || name.length >30){
@@ -132,6 +134,8 @@ export async function saveAvailability(slug: string, slots: string[]): Promise<S
   const auth = await requireParticipant(slug);
   if ("error" in auth) return { error: auth.error };
   const { event, participant } = auth;
+  // po wyborze terminu dostepnosc jest zamrozona
+  if (event.finalStart) return { error: "Termin został już wybrany" };
 
   // Server Action to publiczny POST - argumenty moga byc czymkolwiek
   if (!Array.isArray(slots) || !slots.every((s) => typeof s === "string")) {
@@ -160,7 +164,9 @@ export async function saveAvailability(slug: string, slots: string[]): Promise<S
 export async function clearAvailability(slug:string){
   const auth = await requireParticipant(slug);
     if ("error" in auth) return { error: auth.error };
-    const {participant} = auth;
+    const {event, participant} = auth;
+  // po wyborze terminu dostepnosc jest zamrozona
+  if (event.finalStart) return { error: "Termin został już wybrany" };
 
   await prisma.availability.deleteMany({
     where: {participantId: participant.id}
@@ -212,4 +218,53 @@ export async function removeParticipant(slug:string, participantId:string){
   revalidatePath(`/e/${slug}`)
   return { ok: true}
 
+}
+
+export async function chooseFinalRange(slug:string, slots: string[]) {
+  //sprawdzic token admina
+  const adminToken = (await cookies()).get(`admin_${slug}`)?.value
+  if (!adminToken) return {error: "Brak uprawnień"}
+
+  const hashToCheck = hashToken(adminToken)
+  const event = await prisma.event.findFirst({
+    where: { slug, adminTokenHash: hashToCheck },
+  });
+
+  if (!event) return { error: "Brak uprawnień" };
+  // Server Action to publiczny POST - argumenty moga byc czymkolwiek
+  if (!Array.isArray(slots) || !slots.every((s) => typeof s === "string")) {
+    return { error: "Niepoprawne dane" };
+  }
+  if (slots.length === 0) return {error: "nie wybrano przedziału dat"}
+
+  //sprawdz czy generateslots zwraca
+  // tylko sloty nalezace do wydarzenia, bez duplikatow
+  const allowed = new Set(
+    generateSlots(JSON.parse(event.dates) as string[], event.startMinutes, event.endMinutes, event.slotMinutes, event.timeZone)
+  );
+  const uniqueSlots = [...new Set(slots)];
+  if (!uniqueSlots.every((s) => allowed.has(s))) return { error: "Nieprawidłowe sloty" };
+
+  // ISO z toISOString ma staly format, wiec sortowanie tekstowe = chronologiczne
+  const sorted = uniqueSlots.sort();
+  const slotMs = event.slotMinutes * 60_000;
+
+  // przedzial musi byc ciagly: kolejne sloty co dokladnie slotMinutes
+  // (koniec jednego dnia i poczatek nastepnego dziela godziny, wiec to tez wymusza jeden dzien)
+  for (let i = 1; i < sorted.length; i++) {
+    if (new Date(sorted[i]).getTime() - new Date(sorted[i - 1]).getTime() !== slotMs) {
+      return { error: "Wybrane sloty muszą tworzyć ciągły przedział" };
+    }
+  }
+
+  const finalStart = sorted[0];
+  const finalEnd = new Date(new Date(sorted[sorted.length - 1]).getTime() + slotMs).toISOString();
+
+  await prisma.event.update({
+    where: { id: event.id },
+    data: { finalStart, finalEnd },
+  });
+
+  revalidatePath(`/e/${slug}`);
+  return { ok: true };
 }

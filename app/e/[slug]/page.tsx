@@ -46,6 +46,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             slug={slug}
             eventName={event.name}
             slots={slots}
+            finalStart={event.finalStart}
+            finalEnd={event.finalEnd}
             timeZone={event.timeZone}
             slotMinutes={event.slotMinutes}
             me={me ? { name: me.name } : null}

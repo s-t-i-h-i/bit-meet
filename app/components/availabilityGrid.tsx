@@ -15,15 +15,16 @@ type Props = {
   //tylko view
   result: Record<string, SlotInfo>;
   participantCount?: number;
+  variant: "availability" | "final"
+  finalSlots?: Set<string>
 };
 
-export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots = new Set(), setSelectedSlots, result, participantCount = 0 }: Props) {
+export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots = new Set(), setSelectedSlots, result, participantCount = 0, variant, finalSlots }: Props) {
     const editable = mode === "edit" && !!setSelectedSlots
 
     // przeciaganie: nie wplywa na wyglad, wiec refy zamiast stanu (bez opoznienia miedzy zdarzeniami)
     const isDragging = useRef(false)
     const dragMode = useRef<"add" | "remove">("add")
-
 
     // zastosuj dragMode do slotu; nowy Set, zeby React odswiezyl widok
     const applySlot = (slot: string) => {
@@ -120,16 +121,22 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                         const info = slot  ? result[slot] : undefined;
                         const count = info?.count ?? 0;
                         const pct = participantCount > 0 ? Math.round((count / participantCount) * 100) : 0;
-                        const isSelected = !!slot && selectedSlots.has(slot)                 
+                        const isSelected = !!slot && selectedSlots.has(slot)  
+                            //czy koncowy termin spotkania został wybrany
+                        const isFinal = !!slot && !!finalSlots?.has(slot)  
+                        const isDraftFinal = variant === "final" && isSelected        
                         return (
                             <div
                                 key={`${day}|${time}`}
                                 title={info?.names.join(", ")}
                                 data-slot={slot}
-                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer" : ""} ${isSelected ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:bg-muted" }`}
-                                style={{ backgroundColor: `color-mix(in oklab, var(--primary) ${pct}%, transparent)` }}
-                            >
-                            {isSelected && <Check className="size-4 text-white" strokeWidth={3}/>}
+                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer" : ""} ${(isSelected && variant==="availability") ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "hover:bg-muted" }`}
+                                style={{
+                                    backgroundColor: (isFinal || isDraftFinal)
+                                        ? "var(--destructive)"
+                                        : `color-mix(in oklab, var(--primary) ${pct}%, transparent)`,
+                                }}                              >
+                                {isSelected && <Check className="size-4 text-white" strokeWidth={3}/>}
                             </div>
                         );
                     })}
