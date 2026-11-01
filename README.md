@@ -1,6 +1,6 @@
 # BIT Meet
 
-Aplikacja do ustalania wspólnego terminu spotkania, w stylu When2meet. Twórca tworzy wydarzenie, uczestnicy zaznaczają swoją dostępność, a aplikacja pokazuje najlepszy termin spotkania, z możliwością jego wybrania i poinformowania wszystkich użytkowników.
+Aplikacja do ustalania wspólnego terminu spotkania, w stylu When2meet. Twórca tworzy wydarzenie, uczestnicy zaznaczają swoją dostępność, a aplikacja pokazuje najlepszy termin spotkania, z możliwością jego wybrania i poinformowania wszystkich użytkowników. Przy tworzeniu projektu był używany Claude.
 
 ## Funkcje
 - Tworzenie wydarzenia: daty, zakres godzin, długość slotu. Unikalny link do wydarzenia
