@@ -19,11 +19,12 @@ Aplikacja do ustalania wspólnego terminu spotkania, w stylu When2meet. Twórca 
 
 **Wymagany Node.js 20+.**
 
-bash
+```bash
 npm install
 cp .env.example .env      # DATABASE_URL="file:./dev.db"
-npx prisma migrate dev    # tworzy lokalną bazę
+npx prisma migrate dev    
 npm run dev
+```
 
 Aplikacja działa pod adresem http://localhost:3000.
 
