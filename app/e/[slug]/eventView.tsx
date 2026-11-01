@@ -100,6 +100,7 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
     }
 
     const handleConfimringFinal = () => {
+        if (!confirm("Na pewno wybrać ten termin? Kalendarz zostanie schowany, uczestnicy nie będą mogli już zaznaczać ani zmieniać dostępności, a nowe osoby nie będą mogły dołączyć. Tej operacji nie można cofnąć.")) return
         setSaveError(null)
         startTransition(async() => {
             const res = await chooseFinalRange(slug,[...finalDraft])
@@ -149,15 +150,20 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
             )}
 
             {isFinalized && finalEnd && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            Termin spotkania:{" "}
-                            {new Date(finalStart).toLocaleString("pl-PL", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                <Card className="py-10">
+                    <CardContent className="flex flex-col items-center gap-3 text-center">
+                        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Termin spotkania</p>
+                        <p className="text-4xl font-semibold tracking-tight first-letter:uppercase sm:text-5xl">
+                            {new Date(finalStart).toLocaleDateString("pl-PL", { timeZone, weekday: "long", day: "numeric", month: "long" })}
+                        </p>
+                        <p className="text-3xl font-medium text-muted-foreground sm:text-4xl">
+                            {new Date(finalStart).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}
                             {" – "}
                             {new Date(finalEnd).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}
-                        </CardTitle>
-                    </CardHeader>
+                        </p>
+                        {/* kalendarz jest schowany, wiec "Opuść" musi byc tutaj */}
+                        {me && <Button type="button" variant="ghost" className="mt-4" onClick={handleLeave} disabled={isPending}>Opuść</Button>}
+                    </CardContent>
                 </Card>
             )}
 
@@ -184,32 +190,32 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
             </Card>
             )}
 
+                {/* po wyborze terminu kalendarz jest niepotrzebny - zostaje tylko karta z terminem */}
+                {!isFinalized && (
                 <Card>
                     <CardHeader>
                         <CardTitle> {pickingFinal ? "Wybierz ostateczny termin spotkania" : "dostępność"}</CardTitle>
                         <CardDescription>
                             {pickingFinal
                                 ? "po wybraniu tego terminu zaznaczanie dostępności zostanie wyłączone"
-                                : isFinalized
-                                    ? "Termin został wybrany - zaznaczanie dostępności jest wyłączone"
-                                    : `${me ? `${me.name} · ` : ""}kliknij lub przeciągnij, aby zaznaczyć sloty`}
+                                : `${me ? `${me.name} · ` : ""}kliknij lub przeciągnij, aby zaznaczyć sloty`}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
                         {/* tworca moze wybierac termin nawet bez dolaczenia jako uczestnik */}
-                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={!isFinalized && (pickingFinal || me) ? "edit" : "view"} selectedSlots={pickingFinal ? finalDraft : selected} finalSlots={finalSlots} result={liveResult} participantCount={participantCount} setSelectedSlots={pickingFinal ? setFinalDraft : setSelected} variant={pickingFinal ? 'final' : 'availability'}/>
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={pickingFinal || me ? "edit" : "view"} selectedSlots={pickingFinal ? finalDraft : selected} finalSlots={finalSlots} result={liveResult} participantCount={participantCount} setSelectedSlots={pickingFinal ? setFinalDraft : setSelected} variant={pickingFinal ? 'final' : 'availability'}/>
                         {(me || isAdmin) &&
                         <div className="flex flex-wrap gap-2">
 
                             {!pickingFinal ?
                             <>
-                                {me && !isFinalized && <>
+                                {me && <>
                                     <Button type="button" onClick={handleSave} disabled={isPending}>
                                         {isPending ? "Zapisywanie…" : "Zapisz"}
                                     </Button>
                                     <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
                                 </>}
-                                {isAdmin && !isFinalized && <Button type="button" variant="outline" onClick={handlePickingFinal} disabled={isPending}>Ostateczny Termin</Button>}
+                                {isAdmin && <Button type="button" variant="outline" onClick={handlePickingFinal} disabled={isPending}>Ostateczny Termin</Button>}
                                 {me && <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>}
                             </>:
                             <>
@@ -219,6 +225,7 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
                         </div>}
                     </CardContent>
                 </Card>
+                )}
 
             <Card>
                     <CardContent>
