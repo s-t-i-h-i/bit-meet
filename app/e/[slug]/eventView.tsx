@@ -153,10 +153,10 @@ export default function EventView({ slug, eventName, slots, timeZone, slotMinute
                 <Card className="py-10">
                     <CardContent className="flex flex-col items-center gap-3 text-center">
                         <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Termin spotkania</p>
-                        <p className="text-4xl font-semibold tracking-tight first-letter:uppercase sm:text-5xl">
+                        <p className="text-3xl font-semibold tracking-tight text-balance first-letter:uppercase sm:text-5xl">
                             {new Date(finalStart).toLocaleDateString("pl-PL", { timeZone, weekday: "long", day: "numeric", month: "long" })}
                         </p>
-                        <p className="text-3xl font-medium text-muted-foreground sm:text-4xl">
+                        <p className="text-2xl font-medium text-muted-foreground sm:text-4xl">
                             {new Date(finalStart).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}
                             {" – "}
                             {new Date(finalEnd).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}

@@ -1,5 +1,5 @@
 "use client"
-import { Fragment, useEffect, useMemo, useRef } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { format } from "date-fns"
 import { tz } from "@date-fns/tz"
 import type { SlotInfo } from "./helpers"
@@ -93,24 +93,40 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
         return { days, times, lookup };
     }, [slots, timeZone]);
 
+    // ostatnio dotkniety/najechany kafelek - na telefonie nie ma hovera, wiec title z imionami jest niewidoczny
+    const [activeSlot, setActiveSlot] = useState<string>()
+    const trackActive = (e: React.PointerEvent) => {
+        const slot = slotAt(e)
+        if (slot) setActiveSlot(slot)
+    }
+    const activeInfo = activeSlot ? result[activeSlot] : undefined
+
     // 4. CSS Grid wypelnia wierszami: petla zewnetrzna po godzinach, wewnetrzna po dniach
     return (
+        <div className="flex flex-col gap-2">
+        {/* przy wielu dniach siatka jest szersza niz telefon - przewijamy ja w poziomie zamiast sciskac kolumny */}
+        <div className="overflow-x-auto">
         <div
-            className="grid gap-1 touch-none select-none text-sm"
-            onPointerDown={editable ? handlePointerDown : undefined}/*gdy uytkownik naciśnie nad tabelą */
-            onPointerMove={editable ? handlePointerMove : undefined}/*aktywacja gdy kursor zmienia swoje polozenie*/
-            style={{ gridTemplateColumns: `auto repeat(${days.length}, 1fr)` }}
+            className="grid gap-1 select-none text-sm [-webkit-touch-callout:none]"
+            onPointerDown={(e) => { trackActive(e); if (editable) handlePointerDown(e) }}/*gdy uytkownik naciśnie nad tabelą */
+            onPointerMove={(e) => { trackActive(e); if (editable) handlePointerMove(e) }}/*aktywacja gdy kursor zmienia swoje polozenie*/
+            style={{ gridTemplateColumns: `auto repeat(${days.length}, minmax(2.75rem, 1fr))` }}
         >
-            <div />
+            <div className="sticky left-0 z-10 bg-card" />
             {days.map((day) => (
-                //dla kazdego dnia zbuduj nagłówek z jego datą
-                <div key={day} className="text-center font-medium">{day}</div>
+                //dla kazdego dnia zbuduj nagłówek z jego datą - krotko, zeby zmiescil sie w waskiej kolumnie
+                <div key={day} className="flex flex-col items-center leading-tight">
+                    <span className="text-xs text-muted-foreground">
+                        {new Date(`${day}T12:00:00Z`).toLocaleDateString("pl-PL", { timeZone: "UTC", weekday: "short" })}
+                    </span>
+                    <span className="font-medium">{Number(day.slice(8))}.{day.slice(5, 7)}</span>
+                </div>
             ))}
             {times.map((time) => (
-                //dla kazdej godziny 
+                //dla kazdej godziny
                 <Fragment key={time}>
-                    {/*pierwsza kolumna to napisana godzina */}
-                    <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground">{time}</div>
+                    {/*pierwsza kolumna to napisana godzina - przyklejona, zeby byla widoczna przy przewijaniu w poziomie */}
+                    <div className="sticky left-0 z-10 flex items-center justify-end bg-card pr-2 text-xs text-muted-foreground">{time}</div>
                     {/*dla kazdego kafelka dnia */}
                     {days.map((day) => {
                         //lookup to map w ktorym klucz to {day | time}
@@ -132,7 +148,9 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                                 title={info?.names.join(", ")}
                                 // nie data-slot - tego atrybutu uzywaja komponenty shadcn (np. data-slot="card-content")
                                 data-cell={slot}
-                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer hover:opacity-80" : ""} ${(isSelected && variant==="availability") ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "" }`}
+                                // touch-none tylko na kafelkach w trybie edycji: przeciaganie palcem zaznacza,
+                                // a dotyk w innym miejscu (godziny, naglowki) dalej przewija strone
+                                className={`flex h-8 rounded-md border transition-colors justify-center items-center ${editable ? "cursor-pointer touch-none hover:opacity-80" : ""} ${(isSelected && variant==="availability") ? " ring-2 ring-primary ring-offset-1 ring-offset-background" : "" }`}
                                 style={{
                                     backgroundColor: (isFinal || isDraftFinal)
                                         ? "var(--destructive)"
@@ -144,6 +162,18 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                     })}
                 </Fragment>
             ))}
+        </div>
+        </div>
+        {/* min-h, zeby strona nie skakala, gdy pojawi sie pierwszy opis */}
+        <p className="min-h-5 text-sm text-muted-foreground">
+            {activeSlot && (
+                <>
+                    {new Date(activeSlot).toLocaleString("pl-PL", { timeZone, weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {" · "}{activeInfo?.count ?? 0}/{participantCount}
+                    {activeInfo && activeInfo.names.length > 0 && `: ${activeInfo.names.join(", ")}`}
+                </>
+            )}
+        </p>
         </div>
     );
 }

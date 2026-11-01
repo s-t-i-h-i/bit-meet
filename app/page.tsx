@@ -27,9 +27,9 @@ export default function Home() {
     <Gradient colors={GRADIENT_COLORS} className="flex flex-1 flex-col">
       <main className="flex flex-1 flex-col items-center gap-10 px-4 py-16">
         <h1 className="flex items-end justify-center gap-4">
-          <Image src="/logo.png" alt="BIT" width={1800} height={874} priority className="h-24 w-auto dark:invert" />
+          <Image src="/logo.png" alt="BIT" width={1800} height={874} priority className="h-14 w-auto sm:h-24 dark:invert" />
           {/* leading-none + translate: baseline liter na dole kropek loga (PNG ma ~4% bialego marginesu) */}
-          <span className="font-[family-name:var(--font-logo)] translate-y-[0.065em] text-7xl leading-none">meet</span>
+          <span className="font-[family-name:var(--font-logo)] translate-y-[0.065em] text-[2.6rem] leading-none sm:text-7xl">meet</span>
         </h1>
 
         <Card className="w-full max-w-lg">
