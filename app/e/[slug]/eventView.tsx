@@ -1,7 +1,7 @@
 "use client"
 import { useActionState, useMemo, useState, useTransition } from "react"
 import AvailabilityGrid from "@/app/components/availabilityGrid"
-import type { SlotInfo } from "@/app/components/helpers"
+import { bestSlots, type SlotInfo } from "@/app/components/helpers"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,13 +9,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { clearAvailability, joinEvent, leaveEvent, removeParticipant, saveAvailability } from "@/app/actions"
+import { Tabs, TabsTrigger,TabsList, TabsContent } from "@/components/ui/tabs"
 
 type Props = {
-    participants?: { id: string; name: string }[]; // tylko dla twórcy
+    participants?: { id: string; name: string }[];
     slug: string;
     eventName: string;
     slots: string[];
     timeZone: string;
+    slotMinutes: number;
     me: { name: string } | null;
     initialSelected: string[];
     othersResult: Record<string, SlotInfo>;
@@ -23,7 +25,7 @@ type Props = {
     isAdmin: boolean;
 };
 
-export default function EventView({ slug, eventName, slots, timeZone, me, initialSelected, othersResult, participantCount, isAdmin, participants = [] }: Props) {
+export default function EventView({ slug, eventName, slots, timeZone, slotMinutes, me, initialSelected, othersResult, participantCount, isAdmin, participants = [] }: Props) {
     // useState ignoruje nowe initialSelected po zapisie - lokalny stan jest juz aktualny
     const [selected, setSelected] = useState(() => new Set(initialSelected))
     const [isPending, startTransition] = useTransition()
@@ -78,6 +80,25 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
         })
     }
 
+    // lista uczestnikow - wspolna dla zakladki tworcy i widoku zwyklego uzytkownika
+    const participantList = participants.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nikt jeszcze nie dołączył.</p>
+    ) : (
+        <ul className="flex flex-col divide-y">
+            {participants.map((p) => (
+                <li key={p.id} className="flex items-center justify-between py-2">
+                    <span>{p.name}</span>
+                    {/* usuwac moze tylko tworca - serwer i tak sprawdza token admina */}
+                    {isAdmin && (
+                        <Button type="button" variant="destructive" size="sm" onClick={() => handleRemove(p.id, p.name)} disabled={isPending}>
+                            Usuń
+                        </Button>
+                    )}
+                </li>
+            ))}
+        </ul>
+    )
+
     return (
         <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
             <div className="flex flex-wrap items-center gap-3">
@@ -91,50 +112,8 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
                 </Alert>
             )}
 
-            {isAdmin && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Panel twórcy</CardTitle>
-                        <CardDescription>Uczestnicy ({participants.length})</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {participants.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Nikt jeszcze nie dołączył.</p>
-                        ) : (
-                            <ul className="flex flex-col divide-y">
-                                {participants.map((p) => (
-                                    <li key={p.id} className="flex items-center justify-between py-2">
-                                        <span>{p.name}</span>
-                                        <Button type="button" variant="destructive" size="sm" onClick={() => handleRemove(p.id, p.name)} disabled={isPending}>
-                                            Usuń
-                                        </Button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle> dostępność</CardTitle>
-                        <CardDescription>{me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={selected} result={liveResult} participantCount={participantCount} setSelectedSlots={setSelected} />
-                        <div className="flex flex-wrap gap-2">
-                            <Button type="button" onClick={handleSave} disabled={isPending}>
-                                {isPending ? "Zapisywanie…" : "Zapisz"}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
-                            <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-            <Card className="max-w-md">
+            {!me && (
+            <Card>
                 <CardHeader>
                     <CardTitle>Dołącz do wydarzenia</CardTitle>
                     <CardDescription>Podaj imię, żeby zaznaczyć dostępność.</CardDescription>
@@ -154,6 +133,54 @@ export default function EventView({ slug, eventName, slots, timeZone, me, initia
                     </form>
                 </CardContent>
             </Card>
+            )}
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle> dostępność</CardTitle>
+                        <CardDescription>{me?.name} · kliknij lub przeciągnij, aby zaznaczyć sloty</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                        <AvailabilityGrid slots={slots} timeZone={timeZone} mode={me ? "edit" : "view"} selectedSlots={selected} result={liveResult} participantCount={participantCount} setSelectedSlots={setSelected} />
+                        {me &&
+                        <div className="flex flex-wrap gap-2">
+                            <Button type="button" onClick={handleSave} disabled={isPending}>
+                                {isPending ? "Zapisywanie…" : "Zapisz"}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handleClear} disabled={isPending}>Wyczyść</Button>
+                            <Button type="button" variant="ghost" onClick={handleLeave} disabled={isPending}>Opuść</Button>
+                        </div>}
+                    </CardContent>
+                </Card>
+
+            <Card>
+                    <CardContent>
+                        {isAdmin ? (
+                        <Tabs defaultValue="uczestnicy">
+                            <TabsList>
+                                <TabsTrigger value="uczestnicy">Uczestnicy ({participants.length})</TabsTrigger>
+                                <TabsTrigger value="najlepsze terminy">Najlepsze terminy</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="uczestnicy">
+                                {participantList}
+                            </TabsContent>
+                            <TabsContent value="najlepsze terminy">
+                                {bestSlots(liveResult, slotMinutes, 10).map((slot) => (
+                                    <div key={slot.start} className="flex items-center justify-between py-2">
+                                        <span>
+                                            {new Date(slot.start).toLocaleString("pl-PL", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                            {" – "}
+                                            {new Date(slot.end).toLocaleTimeString("pl-PL", { timeZone, hour: "2-digit", minute: "2-digit" })}
+                                        </span>
+                                        <span title={slot.names.join(", ")} className="text-sm text-muted-foreground">{slot.count}/{participantCount}</span>
+                                    </div>
+                                ))}
+                            </TabsContent>
+                        </Tabs>
+                        ) : participantList}
+                    </CardContent>
+                </Card>
+
         </main>
     )
 }

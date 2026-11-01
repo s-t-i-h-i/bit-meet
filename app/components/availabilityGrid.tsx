@@ -119,7 +119,7 @@ export default function AvailabilityGrid({ slots, timeZone, mode, selectedSlots 
                         // info slotu czyli count i imiona
                         const info = slot  ? result[slot] : undefined;
                         const count = info?.count ?? 0;
-                        const pct = participantCount > 0 ? Math.round((count / participantCount) * 100) : 0; 
+                        const pct = participantCount > 0 ? Math.round((count / participantCount) * 100) : 0;
                         const isSelected = !!slot && selectedSlots.has(slot)                 
                         return (
                             <div

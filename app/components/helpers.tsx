@@ -56,7 +56,7 @@ export function aggregate(allSlots: string[], participants: Participant[]): Reco
 }
 
 //TODO pozniej obslugs remisów
-export function bestSlots(result: Record<string, SlotInfo>, slotMinutes: number, limit = 3): BestSlot[]{
+export function bestSlots(result: Record<string, SlotInfo>, slotMinutes: number, limit = 10): BestSlot[]{
     //pick the best slot based on the count of participants
     //{key,val} -> [key,val]
     return Object.entries(result)

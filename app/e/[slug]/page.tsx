@@ -38,15 +38,16 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     // 6. Tworca
     const admin = await isAdmin(event);
 
-    // do klienta tylko potrzebne pola (bez id, tokenHash, adminTokenHash)
+    // do klienta tylko potrzebne pola (bez tokenHash, adminTokenHash)
     return (
         <EventView
             key={me?.id ?? "guest"}
-            participants={admin ? participants.map((p) => ({ id: p.id, name: p.name })) : undefined}
+            participants={participants.map((p) => ({ id: p.id, name: p.name }))}
             slug={slug}
             eventName={event.name}
             slots={slots}
             timeZone={event.timeZone}
+            slotMinutes={event.slotMinutes}
             me={me ? { name: me.name } : null}
             initialSelected={initialSelected}
             othersResult={othersResult}
